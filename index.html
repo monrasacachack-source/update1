@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Survival Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #222; font-family: Arial; }
+        #gameWrapper { position: relative; width: 400px; height: 600px; margin: auto; }
+        canvas { display: block; background: #333; }
+        
+        /* UI Screens Overlay CSS */
+        .ui-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        
+        .ui-screen h1 { font-size: 32px; margin-bottom: 10px; color: #00ff00; }
+        .ui-screen h2 { font-size: 28px; margin-bottom: 10px; color: #ff4444; }
+        .ui-screen p { font-size: 16px; line-height: 1.5; margin-bottom: 20px; color: #ccc; }
+        
+        /* Button UI Style */
+        .btn {
+            background: #00ff00;
+            color: #111;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #00cc00; transform: scale(1.05); }
+        
+        /* Hidden class to toggle screen display */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="gameWrapper">
+        <div id="startScreen" class="ui-screen">
+            <h1>AI Survival Game</h1>
+            <p><strong>How to Play:</strong><br>
+               Move your mouse or drag your touch left and right to control the green player block. 
+               Evade the falling red blocks to survive and score points!</p>
+            <button class="btn" onclick="startGame()">Start Game</button>
+        </div>
+
+        <div id="gameOverScreen" class="ui-screen hidden">
+            <h2>Game Over</h2>
+            <p id="finalScoreDisplay" style="font-size: 20px;"></p>
+            <button class="btn" onclick="restartGame()">Play Again</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        // UI Elements
+        const startScreen = document.getElementById("startScreen");
+        const gameOverScreen = document.getElementById("gameOverScreen");
+        const finalScoreDisplay = document.getElementById("finalScoreDisplay");
+
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let player = { x: canvas.width / 2 - 20, y: canvas.height - 50, w: 40, h: 40 };
+        let enemies = [];
+        let score = 0;
+        let gameState = "START"; // Game States: START, PLAYING, GAMEOVER
+
+        // Mouse and Touch Controls
+        canvas.addEventListener("mousemove", (e) => {
+            if (gameState !== "PLAYING") return;
+            let rect = canvas.getBoundingClientRect();
+            player.x = e.clientX - rect.left - player.w / 2;
+            
+            // Screen boundary check
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.w) player.x = canvas.width - player.w;
+        });
+
+        function spawnEnemy() {
+            if (Math.random() < 0.05) {
+                enemies.push({ x: Math.random() * (canvas.width - 30), y: -30, size: 30, speed: 3 + Math.random() * 4 });
+            }
+        }
+
+        // Functions to manage screen state transitions
+        function startGame() {
+            startScreen.classList.add("hidden");
+            gameState = "PLAYING";
+        }
+
+        function restartGame() {
+            gameOverScreen.classList.add("hidden");
+            // Reset game variables without reloading page
+            player.x = canvas.width / 2 - 20;
+            enemies = [];
+            score = 0;
+            gameState = "PLAYING";
+        }
+
+        function update() {
+            if (gameState !== "PLAYING") return;
+
+            spawnEnemy();
+            enemies.forEach((enemy, index) => {
+                enemy.y += enemy.speed;
+                
+                // Collision Detection
+                if (player.x < enemy.x + enemy.size && player.x + player.w > enemy.x &&
+                    player.y < enemy.y + enemy.size && player.y + player.h > enemy.y) {
+                    gameState = "GAMEOVER";
+                    finalScoreDisplay.innerText = "Your Score: " + score;
+                    gameOverScreen.classList.remove("hidden");
+                }
+                
+                // Out of bounds detection (Score update)
+                if (enemy.y > canvas.height) {
+                    enemies.splice(index, 1);
+                    score++;
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Player & Enemies
+            ctx.fillStyle = "#00ff00"; 
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            
+            ctx.fillStyle = "#ff4444"; 
+            enemies.forEach(enemy => ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size));
+            
+            // Draw Score Tracker
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 15, 30);
+
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        // Initialize Game Loop
+        draw();
+    </script>
+</body>
+</html>
